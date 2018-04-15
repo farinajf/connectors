@@ -1,0 +1,9 @@
+<component name="AmtegaCASSOA" type="synapse/template" >
+    <subComponents> 
+		<component name="authorize" >
+	    		<file>authorize.xml</file>
+	    		<description>CASSOA connector</description>
+		</component>			
+    </subComponents>    
+</component>
+
