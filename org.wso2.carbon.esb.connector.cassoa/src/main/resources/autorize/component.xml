@@ -1,0 +1,9 @@
+<component name="AmtegaCASSOA" type="synapse/template" >
+    <subComponents> 
+		<component name="AmtegaCASSOATemplate" >
+	    		<file>AmtegaCASSOATemplate.xml</file>
+	    		<description>CASSOA connector</description>
+		</component>			
+    </subComponents>    
+</component>
+

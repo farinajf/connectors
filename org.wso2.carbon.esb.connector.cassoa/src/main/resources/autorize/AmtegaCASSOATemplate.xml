@@ -1,0 +1,12 @@
+<template xmlns="http://ws.apache.org/ns/synapse" name="AmtegaCASSOATemplate">
+        <parameter name="allowedRole"/>
+        <parameter name="endpoint"/>
+        <sequence>
+            	<log level="full">
+			<property name="*******template_param********" expression="$func:allowedRole" />
+			<property name="*******template_param********" expression="$func:endpoint" />
+		</log>
+		<class name="org.wso2.carbon.esb.connector.CassoaConnector" />
+        </sequence>
+</template>
+
