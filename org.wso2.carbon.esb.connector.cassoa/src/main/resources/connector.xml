@@ -17,8 +17,8 @@
    under the License.
 -->
 <connector>
-    <component name="cassoa" package="org.wso2.carbon.esb.connector" >
-        <dependency component="AmtegaCASSOA" />
+    <component name="cassoa" package="org.wso2.carbon.connectors" >
+        <dependency component="AmtegaAuth" />
         <description>CASSOA connector</description>
     </component>
     <icon>icon/icon-small.gif</icon>

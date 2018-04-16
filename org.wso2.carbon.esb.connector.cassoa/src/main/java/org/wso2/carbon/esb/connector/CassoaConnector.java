@@ -45,31 +45,32 @@ public class CassoaConnector extends AbstractConnector {
 	 * 
 	 * @param messageContext
 	 * @return
-	 * @throws CASSOAException
+	 * @throws UnauthorizedException
 	 */
-	private String getAuthorizationHeader(final MessageContext messageContext) throws CASSOAException {
+	private String getAuthorizationHeader(final MessageContext messageContext) throws UnauthorizedException {
 		Object result = null;
 
-		if (!(messageContext instanceof Axis2MessageContext)) {
+		if ((messageContext instanceof Axis2MessageContext) == false)
+        {
 			log.warn("CassoaConnector: MessageContext is not instance of Axis2MessageContext!!");
 			throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
 		}
 		
-		final org.apache.synapse.core.axis2.Axis2MessageContext axis2mc = (Axis2MessageContext) messageContext;
-		final org.apache.axis2.context.MessageContext axis2MessageContext = axis2mc.getAxis2MessageContext();
-		final Object headers = axis2MessageContext.getLocalProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS);
+		final org.apache.axis2.context.MessageContext axis2MessageContext = ((Axis2MessageContext) messageContext).getAxis2MessageContext();
+		final Object                                  headers             = axis2MessageContext.getLocalProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS);
 
-		if (headers != null && headers instanceof java.util.Map) {
-			java.util.Map mapa = (java.util.Map) headers;
-			result = mapa.get(TP_AUTHORIZATION);
+		if ((headers != null) && (headers instanceof java.util.Map))
+        {
+			result = ((java.util.Map) headers).get(TP_AUTHORIZATION);
 		}
 
-		if ((result == null) || (EMPTY.equals(result.toString().trim()))) {
+		if ((result == null) || (EMPTY.equals(result.toString().trim())))
+        {
 			log.warn("CassoaConnector: No header authorization!!");
 			throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
 		}
 
-		return result.toString().trim();
+		return (result == null) ? EMPTY : result.toString().trim();
 	}
 
 	/**
@@ -79,24 +80,31 @@ public class CassoaConnector extends AbstractConnector {
 	 * @throws CASSOAException
 	 */
 	private void authorize(final MessageContext messageContext, final String allowedRole) throws CASSOAException {
+        final Profile profile;
+
 		//1.- Obtenemos el Token
 		final String accessToken = getAuthorizationHeader(messageContext);
 		
-		//2.- Comprobamos los permisos
-		try
-		{
-			final Profile profile = oauth2Provider.getUSerProfile(accessToken);
-			if (profile.hasRole(allowedRole) == false)
-			{
-				throw new ForbiddenException(messageContext, new StringBuilder(NOT_ALLOWED).append(allowedRole).toString());
-			}
-		}
-		catch (JsonParseException e) {
+        //2.- Obtenemos los permisos
+        try
+        {
+            profile = oauth2Provider.getUSerProfile(accessToken);
+        }
+        catch (JsonParseException e)
+        {
 			throw new UnauthorizedException(messageContext, e.getMessage(), e);
 		}
-		catch (IOException e) {
+		catch (IOException e)
+        {
 			throw new UnauthorizedException(messageContext, e.getMessage(), e);
 		}
+
+
+		//3.- Comprobamos los permisos
+        if (profile.hasRole(allowedRole) == false)
+        {
+            throw new ForbiddenException(messageContext, new StringBuilder(NOT_ALLOWED).append(allowedRole).toString());
+        }
 		
 		//3.- Todo OK
 		return;
@@ -110,8 +118,8 @@ public class CassoaConnector extends AbstractConnector {
 		Object allowedRole = getParameter(messageContext, "allowedRole");
 		Object endpoint    = getParameter(messageContext, "endpoint");
 		try {
-			log.info("cassoa sample connector received message :" + allowedRole);
-			log.info("cassoa sample connector received message :" + endpoint);
+			log.info("allowedRole :" + allowedRole);
+			log.info("endpoint    :" + endpoint);
 			/**
 			 * Add your connector code here
 			 **/
