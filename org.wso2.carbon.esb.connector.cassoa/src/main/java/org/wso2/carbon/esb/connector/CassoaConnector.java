@@ -18,7 +18,6 @@
 package org.wso2.carbon.esb.connector;
 
 import java.io.IOException;
-
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
@@ -34,97 +33,132 @@ import org.wso2.carbon.esb.connector.oauth.UnauthorizedException;
  * Sample method implementation.
  */
 public class CassoaConnector extends AbstractConnector {
-	private static final String TP_AUTHORIZATION = "Authorization";
-	private static final String NO_AUTH_HEADER   = "No hay cabecera de autenticacion";
-	private static final String NOT_ALLOWED      = "El usuario no pertenece al grupo: ";
-	private static final String EMPTY = "";
-	
-	private final OAuth2Provider oauth2Provider = null;
-	
-	/**
-	 * 
-	 * @param messageContext
-	 * @return
-	 * @throws UnauthorizedException
-	 */
-	private String getAuthorizationHeader(final MessageContext messageContext) throws UnauthorizedException {
-		Object result = null;
+    private static final String TP_AUTHORIZATION = "Authorization";
+    private static final String NO_AUTH_HEADER   = "No hay cabecera de autenticacion";
+    private static final String NOT_ALLOWED      = "El usuario no pertenece al grupo: ";
+    private static final String EMPTY = "";
 
-		if ((messageContext instanceof Axis2MessageContext) == false)
+    private final OAuth2Provider oauth2Provider = null;
+
+    /**
+     * Devuelve el mapa con las cabeceras HTTP.
+     * @param messageContext
+     * @return 
+     */
+    private java.util.Map getHeaders(final MessageContext messageContext) {
+        final org.apache.axis2.context.MessageContext axis2MessageContext;
+        final java.lang.Object                        result;
+
+        if ((messageContext instanceof Axis2MessageContext) == false)
         {
-			log.warn("CassoaConnector: MessageContext is not instance of Axis2MessageContext!!");
-			throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
-		}
-		
-		final org.apache.axis2.context.MessageContext axis2MessageContext = ((Axis2MessageContext) messageContext).getAxis2MessageContext();
-		final Object                                  headers             = axis2MessageContext.getLocalProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS);
+            log.warn("CassoaConnector: MessageContext is not instance of Axis2MessageContext!!");
+            return null;
+        }
 
-		if ((headers != null) && (headers instanceof java.util.Map))
+        if ((axis2MessageContext = ((Axis2MessageContext) messageContext).getAxis2MessageContext()) == null)
         {
-			result = ((java.util.Map) headers).get(TP_AUTHORIZATION);
-		}
+            log.warn("CassoaConnector: axis2MessageContext is null!!");
+            return null;
+        }
 
-		if ((result == null) || (EMPTY.equals(result.toString().trim())))
+        if ((result = axis2MessageContext.getLocalProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS)) == null)
         {
-			log.warn("CassoaConnector: No header authorization!!");
-			throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
-		}
+            log.warn("CassoaConnector: TRANSPORT_HEADRES are null!!");
+            return null;
+        }
 
-		return (result == null) ? EMPTY : result.toString().trim();
-	}
+        if ((result instanceof java.util.Map) == false)
+        {
+            log.warn("CassoaConnector: TRANSPORT_HEADRES are not a Map!!");
+            return null;
+        }
 
-	/**
-	 * 
-	 * @param messageContext
-	 * @param allowedRole
-	 * @throws CASSOAException
-	 */
-	private void authorize(final MessageContext messageContext, final String allowedRole) throws CASSOAException {
+        return (java.util.Map) result;
+    }
+
+    /**
+     * 
+     * @param messageContext
+     * @return
+     * @throws UnauthorizedException
+     */
+    private String getAuthorizationHeader(final MessageContext messageContext) throws UnauthorizedException {
+        final java.util.Map headers;
+        final Object authHeader;
+
+        if ((headers = getHeaders(messageContext)) == null)
+        {
+            throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
+        }
+
+        if ((authHeader = headers.get(TP_AUTHORIZATION)) == null)
+        {
+            log.warn("CassoaConnector: No authorization header!!");
+            throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
+        }
+
+        final String result = authHeader.toString().trim();
+
+        if (EMPTY.equals(result))
+        {
+            log.warn("CassoaConnector: authorization header is empty!!");
+            throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
+        }
+
+        return result;
+    }
+
+    /**
+     * 
+     * @param messageContext
+     * @param allowedRole
+     * @throws CASSOAException
+     */
+    private void authorize(final MessageContext messageContext, final String allowedRole) throws CASSOAException {
         final Profile profile;
 
-		//1.- Obtenemos el Token
-		final String accessToken = getAuthorizationHeader(messageContext);
+        //1.- Obtenemos el Token
+        final String accessToken = getAuthorizationHeader(messageContext);
 		
-        //2.- Obtenemos los permisos
-        try
-        {
-            profile = oauth2Provider.getUSerProfile(accessToken);
-        }
-        catch (JsonParseException e)
-        {
-			throw new UnauthorizedException(messageContext, e.getMessage(), e);
-		}
-		catch (IOException e)
-        {
-			throw new UnauthorizedException(messageContext, e.getMessage(), e);
-		}
+//2.- Obtenemos los permisos
+try
+{
+profile = oauth2Provider.getUSerProfile(accessToken);
+}
+catch (JsonParseException e)
+{
+throw new UnauthorizedException(messageContext, e.getMessage(), e);
+}
+catch (IOException e)
+{
+throw new UnauthorizedException(messageContext, e.getMessage(), e);
+}
 
-
-		//3.- Comprobamos los permisos
-        if (profile.hasRole(allowedRole) == false)
-        {
-            throw new ForbiddenException(messageContext, new StringBuilder(NOT_ALLOWED).append(allowedRole).toString());
-        }
+//3.- Comprobamos los permisos
+if (profile.hasRole(allowedRole) == false)
+{
+throw new ForbiddenException(messageContext, new StringBuilder(NOT_ALLOWED).append(allowedRole).toString());
+}
 		
-		//3.- Todo OK
-		return;
-	}
+//3.- Todo OK
+return;
+}
 
-	/**
-	 * 
-	 */
-	@Override
-	public void connect(MessageContext messageContext) throws ConnectException {
-		Object allowedRole = getParameter(messageContext, "allowedRole");
-		Object endpoint    = getParameter(messageContext, "endpoint");
-		try {
-			log.info("allowedRole :" + allowedRole);
-			log.info("endpoint    :" + endpoint);
-			/**
-			 * Add your connector code here
-			 **/
-		} catch (Exception e) {
-			throw new ConnectException(e);
-		}
-	}
+    /**
+     * 
+     */
+    @Override
+    public void connect(MessageContext messageContext) throws ConnectException {
+        Object allowedRole = getParameter(messageContext, "allowedRole");
+        Object endpoint    = getParameter(messageContext, "endpoint");
+        try {
+            log.info("allowedRole :" + allowedRole);
+            log.info("endpoint    :" + endpoint);
+            /**
+             * Add your connector code here
+             **/
+        } catch (Exception e) {
+            throw new ConnectException(e);
+        }
+    }
 }
