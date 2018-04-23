@@ -1,14 +1,14 @@
-package org.wso2.carbon.esb.connector.oauth;
+package org.wso2.carbon.esb.connector.exceptions;
 
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseConstants;
 
-public class UnauthorizedException extends CASSOAException {
+public class UnAuthorizedException extends CASSOAException {
 	private static final long serialVersionUID = 1L;
 	private static final String MESSAGE = "Unauthorized";
 	private static final String CODE    = "401";
 
-	public UnauthorizedException(final MessageContext messageContext, final String detail) {
+	public UnAuthorizedException(final MessageContext messageContext, final String detail) {
 		super(detail);
 		
 		messageContext.setProperty(SynapseConstants.ERROR_CODE,    CODE);
@@ -16,7 +16,7 @@ public class UnauthorizedException extends CASSOAException {
 		messageContext.setProperty(SynapseConstants.ERROR_DETAIL,  detail);
 	}
 	
-	public UnauthorizedException(final MessageContext messageContext, final String detail, final Throwable th) {
+	public UnAuthorizedException(final MessageContext messageContext, final String detail, final Throwable th) {
 		super(th, detail);
 		
 		messageContext.setProperty(SynapseConstants.ERROR_CODE,    CODE);

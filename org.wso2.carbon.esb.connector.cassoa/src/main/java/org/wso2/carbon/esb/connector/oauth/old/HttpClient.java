@@ -1,4 +1,4 @@
-package org.wso2.carbon.esb.connector.oauth;
+package org.wso2.carbon.esb.connector.oauth.old;
 
 import java.io.BufferedReader;
 import java.io.IOException;

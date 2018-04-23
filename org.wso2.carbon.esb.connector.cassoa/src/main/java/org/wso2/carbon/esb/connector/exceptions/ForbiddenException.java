@@ -1,4 +1,4 @@
-package org.wso2.carbon.esb.connector.oauth;
+package org.wso2.carbon.esb.connector.exceptions;
 
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseConstants;

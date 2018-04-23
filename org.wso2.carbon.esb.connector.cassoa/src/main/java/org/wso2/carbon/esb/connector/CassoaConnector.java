@@ -22,28 +22,23 @@ import org.apache.synapse.MessageContext;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.wso2.carbon.connector.core.AbstractConnector;
 import org.wso2.carbon.connector.core.ConnectException;
-import org.wso2.carbon.esb.connector.oauth.CASSOAException;
-import org.wso2.carbon.esb.connector.oauth.ForbiddenException;
-import org.wso2.carbon.esb.connector.oauth.JsonParseException;
-import org.wso2.carbon.esb.connector.oauth.OAuth2Provider;
-import org.wso2.carbon.esb.connector.oauth.Profile;
-import org.wso2.carbon.esb.connector.oauth.UnauthorizedException;
+import org.wso2.carbon.esb.connector.exceptions.CASSOAException;
+import org.wso2.carbon.esb.connector.exceptions.ForbiddenException;
+import org.wso2.carbon.esb.connector.exceptions.UnAuthorizedException;
+import org.wso2.carbon.esb.connector.oauth.Constantes;
+import org.wso2.carbon.esb.connector.oauth.OAuth2Service;
+import org.wso2.carbon.esb.connector.oauth.OAuth2ServiceImpl;
 
 /**
  * Sample method implementation.
  */
 public class CassoaConnector extends AbstractConnector {
-    private static final String TP_AUTHORIZATION = "Authorization";
-    private static final String NO_AUTH_HEADER   = "No hay cabecera de autenticacion";
-    private static final String NOT_ALLOWED      = "El usuario no pertenece al grupo: ";
-    private static final String EMPTY = "";
-
-    private final OAuth2Provider oauth2Provider = null;
+    private final OAuth2Service oauth2Service = new OAuth2ServiceImpl();
 
     /**
      * Devuelve el mapa con las cabeceras HTTP.
      * @param messageContext
-     * @return 
+     * @return
      */
     private java.util.Map getHeaders(final MessageContext messageContext) {
         final org.apache.axis2.context.MessageContext axis2MessageContext;
@@ -77,75 +72,76 @@ public class CassoaConnector extends AbstractConnector {
     }
 
     /**
-     * 
+     * Devuelve el valor de la cabecera HTTP Authorization
      * @param messageContext
      * @return
      * @throws UnauthorizedException
      */
-    private String getAuthorizationHeader(final MessageContext messageContext) throws UnauthorizedException {
+    private String getAuthorizationHeader(final MessageContext messageContext) throws UnAuthorizedException {
         final java.util.Map headers;
         final Object authHeader;
 
         if ((headers = getHeaders(messageContext)) == null)
         {
-            throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
+            throw new UnAuthorizedException(messageContext, Constantes.ERROR_NO_AUTH_HEADER);
         }
 
-        if ((authHeader = headers.get(TP_AUTHORIZATION)) == null)
+        if ((authHeader = headers.get(Constantes.TP_AUTHORIZATION)) == null)
         {
             log.warn("CassoaConnector: No authorization header!!");
-            throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
+            throw new UnAuthorizedException(messageContext, Constantes.ERROR_NO_AUTH_HEADER);
         }
 
         final String result = authHeader.toString().trim();
 
-        if (EMPTY.equals(result))
+        if (Constantes.EMPTY.equals(result))
         {
             log.warn("CassoaConnector: authorization header is empty!!");
-            throw new UnauthorizedException(messageContext, NO_AUTH_HEADER);
+            throw new UnAuthorizedException(messageContext, Constantes.ERROR_NO_AUTH_HEADER);
         }
 
         return result;
     }
 
     /**
-     * 
+     *
      * @param messageContext
      * @param allowedRole
      * @throws CASSOAException
      */
-    private void authorize(final MessageContext messageContext, final String allowedRole) throws CASSOAException {
-        final Profile profile;
+    private void authorize(final MessageContext messageContext, final String endpoint, final String allowedRole) throws CASSOAException {
+        final String  response;
 
         //1.- Obtenemos el Token
         final String accessToken = getAuthorizationHeader(messageContext);
-		
-//2.- Obtenemos los permisos
-try
-{
-profile = oauth2Provider.getUSerProfile(accessToken);
-}
-catch (JsonParseException e)
-{
-throw new UnauthorizedException(messageContext, e.getMessage(), e);
-}
-catch (IOException e)
-{
-throw new UnauthorizedException(messageContext, e.getMessage(), e);
-}
 
-//3.- Comprobamos los permisos
-if (profile.hasRole(allowedRole) == false)
-{
-throw new ForbiddenException(messageContext, new StringBuilder(NOT_ALLOWED).append(allowedRole).toString());
-}
-		
-//3.- Todo OK
-return;
-}
+        //2.- Se valida el Token
+        try
+        {
+            if ((response = oauth2Service.getUSerProfile(endpoint, accessToken)) == null)
+            {
+                log.warn("CassoaConnector: Token no valido!!");
+                throw new UnAuthorizedException(messageContext, Constantes.ERROR_TOKEN_NOT_VALID);
+            }
+        }
+        catch (IOException e)
+        {
+            throw new UnAuthorizedException(messageContext, e.getMessage());
+        }
+
+        //3.- Control de acceso
+        if (oauth2Service.hasRole(response, allowedRole) == false)
+        {
+            log.warn("CassoaConnector: no pertenece al grupo (" + allowedRole + ")!!");
+            throw new ForbiddenException(messageContext, new StringBuilder(Constantes.ERROR_NOT_ALLOWED).append(allowedRole).toString());
+        }
+
+        //3.- Todo OK
+        return;
+    }
 
     /**
-     * 
+     *
      */
     @Override
     public void connect(MessageContext messageContext) throws ConnectException {
