@@ -1,5 +1,6 @@
 package org.wso2.carbon.esb.connector.oauth;
 
+import org.wso2.carbon.esb.connector.oauth.exceptions.JsonParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

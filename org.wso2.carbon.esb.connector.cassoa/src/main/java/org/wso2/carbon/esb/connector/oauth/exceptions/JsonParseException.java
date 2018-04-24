@@ -1,4 +1,4 @@
-package org.wso2.carbon.esb.connector.oauth;
+package org.wso2.carbon.esb.connector.oauth.exceptions;
 
 public class JsonParseException extends Exception {
 

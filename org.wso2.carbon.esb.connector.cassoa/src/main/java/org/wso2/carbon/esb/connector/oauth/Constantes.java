@@ -17,11 +17,22 @@ public final class Constantes {
     public static final String EMPTY                 = "";
 
     /**
-     * 
+     *
      * @param x
      * @return
      */
     public static String trimToEmpty(final String x) {
         return (x == null) ? EMPTY : x.trim();
+    }
+
+    /**
+     *
+     * @param x
+     * @return
+     */
+    public static boolean isEmpty(final String x) {
+        if (x == null) return true;
+
+        return EMPTY.equals(x.trim());
     }
 }

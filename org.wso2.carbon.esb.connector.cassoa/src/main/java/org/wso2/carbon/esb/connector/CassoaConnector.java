@@ -29,6 +29,7 @@ import org.wso2.carbon.esb.connector.oauth.Constantes;
 import org.wso2.carbon.esb.connector.oauth.OAuth2Service;
 import org.wso2.carbon.esb.connector.oauth.OAuth2ServiceImpl;
 import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
+import org.wso2.carbon.esb.connector.oauth.exceptions.JsonParseException;
 
 /**
  * Sample method implementation.
@@ -129,6 +130,25 @@ public class CassoaConnector extends AbstractConnector {
     }
 
     /**
+     * 
+     * @param messageContext
+     * @param response
+     * @param allowedRole
+     * @return
+     * @throws ForbiddenException
+     */
+    private boolean hasRole(final MessageContext messageContext, final String response, final String allowedRole) throws ForbiddenException {
+        try
+        {
+            return oauth2Service.hasRole(response, allowedRole);
+        }
+        catch (JsonParseException e)
+        {
+            throw new ForbiddenException(e, messageContext, e.getMessage());
+        }
+    }
+
+    /**
      *
      * @param messageContext
      * @param allowedRole
@@ -148,13 +168,13 @@ public class CassoaConnector extends AbstractConnector {
         }
 
         //3.- Control de acceso
-        if (oauth2Service.hasRole(response, allowedRole) == false)
+        if (hasRole(messageContext, response, allowedRole) == false)
         {
             log.warn("CassoaConnector: no pertenece al grupo (" + allowedRole + ")!!");
             throw new ForbiddenException(messageContext, new StringBuilder(Constantes.ERROR_NOT_ALLOWED).append(allowedRole).toString());
         }
 
-        //3.- Todo OK
+        //4.- Todo OK
         return;
     }
 

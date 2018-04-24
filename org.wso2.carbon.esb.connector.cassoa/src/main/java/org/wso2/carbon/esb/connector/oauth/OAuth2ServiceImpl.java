@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
+import org.wso2.carbon.esb.connector.oauth.exceptions.JsonParseException;
 
 /**
  *
@@ -21,6 +22,8 @@ import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
  */
 public class OAuth2ServiceImpl implements OAuth2Service {
     private static final Pattern CN_PATTERN = Pattern.compile("^CN=([^,]+)");
+    private static final String  SUB        = "sub";
+    private static final String  ROLES      = "roles";
 
     private final Log log = LogFactory.getLog(this.getClass());
 
@@ -49,7 +52,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     public String getProfile(final String endpoint, String accessToken) throws HTTPClientException, IOException {
         final java.util.Map<String,String> headers = new LinkedHashMap<String,String>();
 
-        log.info("OAuth2ProviderImpl.getUSerProfile(" + accessToken + ")");
+        log.info("OAuth2ServiceImpl.getProfile(" + accessToken + ")");
 
         //1.- Se construye la cabecera
         headers.put(Constantes.TP_AUTHORIZATION, accessToken);
@@ -62,7 +65,23 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     }
 
     @Override
-    public boolean hasRole(String response, String allowedRole) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public boolean hasRole(String response, String allowedRole) throws JsonParseException{
+        log.info("OAuth2ServiceImpl.hasRole(" + allowedRole + "," + response + ")");
+
+        //0.- Control de errores
+        if (Constantes.isEmpty(response)    == true) return false;
+        if (Constantes.isEmpty(allowedRole) == true) return false;
+
+        //1.- Parseo JSON
+        final Json                   json      = new Json(response);
+        final String                 subject   = json.getString(SUB);
+        final java.util.List<String> ldapRoles = json.getArray (ROLES);
+	final Collection<String>     roles     = rolesFromLdapCn(ldapRoles);
+
+        final Profile profile = new Profile(subject, roles);
+
+        log.info("OAuth2ServiceImpl.profile: [" + profile.toString() + "]");
+
+        return profile.hasRole(allowedRole);
     }
 }

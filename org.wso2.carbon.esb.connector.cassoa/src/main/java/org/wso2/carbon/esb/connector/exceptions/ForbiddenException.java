@@ -15,4 +15,13 @@ public class ForbiddenException extends CASSOAException {
     public ForbiddenException(final MessageContext messageContext, final String detail) {
         super(messageContext, CODE, MESSAGE, detail);
     }
+
+    /**
+     *
+     * @param messageContext
+     * @param detail
+     */
+    public ForbiddenException(final Throwable th, final MessageContext messageContext, final String detail) {
+        super(th, messageContext, CODE, MESSAGE, detail);
+    }
 }

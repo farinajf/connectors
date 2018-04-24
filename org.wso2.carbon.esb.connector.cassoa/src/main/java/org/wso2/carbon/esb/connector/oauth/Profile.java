@@ -25,7 +25,7 @@ public class Profile {
      * @return
      */
     public boolean hasRole(final String allowedRole) {
-        if ((allowedRole == null) || (allowedRole.trim().isEmpty() == true)) return false;
+        if (Constantes.isEmpty(allowedRole) == true) return false;
 
         for (String x : roles) {
             if (x.contains(allowedRole) == true) return true;
