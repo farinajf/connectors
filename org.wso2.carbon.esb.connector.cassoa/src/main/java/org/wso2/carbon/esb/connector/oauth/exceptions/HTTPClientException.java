@@ -39,4 +39,17 @@ public class HTTPClientException extends java.lang.Exception {
     /**************************************************************************/
     public int    getHttpStatus()  {return httpStatus;}
     public String getHttpMessage() {return httpMessage;}
+
+    /**
+     * 
+     * @return
+     */
+    public String toString() {
+        final StringBuilder result = new StringBuilder();
+
+        result.append("httpStatus:").append(httpStatus).append(",");
+        result.append("httpMessage:").append(httpMessage);
+
+        return result.toString();
+    }
 }

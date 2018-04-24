@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
 
 /**
  *
@@ -45,7 +46,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     }
 
     @Override
-    public String getUSerProfile(final String endpoint, String accessToken) throws IOException {
+    public String getProfile(final String endpoint, String accessToken) throws HTTPClientException, IOException {
         final java.util.Map<String,String> headers = new LinkedHashMap<String,String>();
 
         log.info("OAuth2ProviderImpl.getUSerProfile(" + accessToken + ")");

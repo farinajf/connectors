@@ -14,6 +14,7 @@ import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
 
 /**
  *
@@ -22,21 +23,6 @@ import org.apache.commons.logging.LogFactory;
 class HttpClient {
     private final Log    log = LogFactory.getLog(this.getClass());
     private final String endpoint;
-
-    /**
-     *
-     * @param socket
-     * @return
-     */
-    private String getError(final HttpURLConnection socket) {
-        try
-        {
-            return new StringBuilder("HTTP Status:").append(socket.getResponseCode()).append(" - ").append(socket.getResponseMessage()).toString();
-        }
-        catch (Exception e) {}
-
-        return Constantes.EMPTY;
-    }
 
     /**
      *
@@ -71,12 +57,12 @@ class HttpClient {
      */
     HttpClient(final String x)
     {
-        endpoint = String.valueOf(x).trim();
+        endpoint = Constantes.trimToEmpty(x);
 
         if (Constantes.EMPTY.equals(endpoint) == true)
         {
-            log.warn("CassoaConnector: endpoint nulo!!");
-            throw new IllegalArgumentException("Endpoint nulo");
+            log.error("CassoaConnector: endpoint nulo!!");
+            throw new IllegalArgumentException("CassoaConnector: endpoint nulo!!");
         }
     }
 
@@ -85,8 +71,10 @@ class HttpClient {
      * @param url
      * @param headers
      * @return
+     * @throws HTTPClientException
+     * @throws IOException
      */
-    public String get(final java.util.Map<String, String> headers) throws IOException {
+    public String get(final java.util.Map<String, String> headers) throws HTTPClientException, IOException {
         HttpsURLConnection socket = null;
 
         try
@@ -106,16 +94,12 @@ class HttpClient {
             //3.- Obtenemos la respuesta
             if (socket.getResponseCode() != 200)
             {
-                log.warn("CassoaConnector: " + this.getError(socket));
-                throw new IOException(this.getError(socket));
+                throw new HTTPClientException(socket.getResponseCode(), socket.getResponseMessage());
             }
 
-            String response = read(socket);
-
             //4.- Fin
-            return response;
+            return this.read(socket);
         }
-        catch (IOException e) {throw e;}
         finally
         {
             if (socket != null) socket.disconnect();

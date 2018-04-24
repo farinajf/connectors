@@ -6,12 +6,13 @@
 package org.wso2.carbon.esb.connector.oauth;
 
 import java.io.IOException;
+import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
 
 /**
  *
  * @author fran
  */
 public interface OAuth2Service {
-    String getUSerProfile(final String endpoint, final String accessToken) throws IOException;
-    boolean hasRole      (final String response, final String allowedRole);
+    String getProfile(final String endpoint, final String accessToken) throws HTTPClientException, IOException;
+    boolean hasRole  (final String response, final String allowedRole);
 }

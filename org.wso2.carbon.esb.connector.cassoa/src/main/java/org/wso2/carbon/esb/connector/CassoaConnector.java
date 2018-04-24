@@ -28,6 +28,7 @@ import org.wso2.carbon.esb.connector.exceptions.UnAuthorizedException;
 import org.wso2.carbon.esb.connector.oauth.Constantes;
 import org.wso2.carbon.esb.connector.oauth.OAuth2Service;
 import org.wso2.carbon.esb.connector.oauth.OAuth2ServiceImpl;
+import org.wso2.carbon.esb.connector.oauth.exceptions.HTTPClientException;
 
 /**
  * Sample method implementation.
@@ -46,25 +47,25 @@ public class CassoaConnector extends AbstractConnector {
 
         if ((messageContext instanceof Axis2MessageContext) == false)
         {
-            log.warn("CassoaConnector: MessageContext is not instance of Axis2MessageContext!!");
+            log.error("CassoaConnector: MessageContext is not instance of Axis2MessageContext!!");
             return null;
         }
 
         if ((axis2MessageContext = ((Axis2MessageContext) messageContext).getAxis2MessageContext()) == null)
         {
-            log.warn("CassoaConnector: axis2MessageContext is null!!");
+            log.error("CassoaConnector: axis2MessageContext is null!!");
             return null;
         }
 
         if ((result = axis2MessageContext.getLocalProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS)) == null)
         {
-            log.warn("CassoaConnector: TRANSPORT_HEADRES are null!!");
+            log.error("CassoaConnector: TRANSPORT_HEADRES are null!!");
             return null;
         }
 
         if ((result instanceof java.util.Map) == false)
         {
-            log.warn("CassoaConnector: TRANSPORT_HEADRES are not a Map!!");
+            log.error("CassoaConnector: TRANSPORT_HEADRES are not a Map!!");
             return null;
         }
 
@@ -106,27 +107,44 @@ public class CassoaConnector extends AbstractConnector {
     /**
      *
      * @param messageContext
+     * @param endpoint
+     * @param accessToken
+     * @return
+     * @throws CASSOAException
+     */
+    private String getProfile(final MessageContext messageContext, final String endpoint, final String accessToken) throws CASSOAException {
+        try
+        {
+            return oauth2Service.getProfile(endpoint, accessToken);
+        }
+        catch (HTTPClientException e)
+        {
+            log.warn(e.toString());
+            throw new CASSOAException(e, messageContext, String.valueOf(e.getHttpStatus()), e.getHttpMessage(), e.getHttpMessage());
+        }
+        catch (IOException e)
+        {
+            throw new UnAuthorizedException(e, messageContext, e.getMessage());
+        }
+    }
+
+    /**
+     *
+     * @param messageContext
      * @param allowedRole
      * @throws CASSOAException
      */
     private void authorize(final MessageContext messageContext, final String endpoint, final String allowedRole) throws CASSOAException {
-        final String  response;
+        final String response;
 
         //1.- Obtenemos el Token
         final String accessToken = getAuthorizationHeader(messageContext);
 
         //2.- Se valida el Token
-        try
+        if ((response = getProfile(messageContext, endpoint, accessToken)) == null)
         {
-            if ((response = oauth2Service.getUSerProfile(endpoint, accessToken)) == null)
-            {
-                log.warn("CassoaConnector: Token no valido!!");
-                throw new UnAuthorizedException(messageContext, Constantes.ERROR_TOKEN_NOT_VALID);
-            }
-        }
-        catch (IOException e)
-        {
-            throw new UnAuthorizedException(messageContext, e.getMessage());
+            log.warn("CassoaConnector: Token nulo!!");
+            throw new UnAuthorizedException(messageContext, Constantes.ERROR_TOKEN_NOT_VALID);
         }
 
         //3.- Control de acceso
